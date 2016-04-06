@@ -30,4 +30,4 @@ let view = (size) => {
     };
 };
 
-module.exports = view(6).play;
+module.exports = view;
