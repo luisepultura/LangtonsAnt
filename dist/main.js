@@ -40,11 +40,19 @@ module.exports = Ant;
 },{"./direction":3}],2:[function(require,module,exports){
 'use strict';
 
-var view = require('./play');
-
-module.exports = view;
+var view = require('./view');
+//let window = window || {};
+// let LangtonView = window.LangtonView || {};
+// LangtonView.view = view;
+// window.LangtonView = LangtonView;
 //view(4).play();
-},{"./play":5}],3:[function(require,module,exports){
+
+if (typeof window !== 'undefined') {
+    var LangtonView = window.LangtonView || {};
+    LangtonView.view = view;
+    window.LangtonView = LangtonView;
+}
+},{"./view":5}],3:[function(require,module,exports){
 'use strict';
 
 var direction = function direction() {
