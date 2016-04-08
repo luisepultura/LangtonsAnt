@@ -1,44 +1,44 @@
 'use strict';
-let Langton = require('./langton');
-let Ant = require('./ant');
-let direction = require('./direction');
-
+let clone1DArray = (array) => {
+    return array.slice();
+};
 
 var LangtonView = function(options) {
     this.canvas = options.canvas;
-    this.size = options.size;
+    this.width = options.width;
+    this.height = options.height;
     this.pixels = options.pixels;
     this.speed = options.speed;
     this.ants = options.ants;
     this.grid = [];
-    this.context = options.canvas.getContext("2d");
-    //     ctx.fillStyle = "green";
-    // ctx.fillRect(10, 10, 100, 100);
+    this.prevAnts = [];
+    this.context = this.canvas.getContext("2d");
+    this.canvas.width = this.width * this.pixels;
+    this.canvas.height = this.height * this.pixels;
+    this.createGrid();
 };
 
 LangtonView.prototype = {
     createGrid: function() {
-        this.canvas.width = this.size * this.pixels;
-        this.canvas.height = this.size * this.pixels;
-        for (let y = 0; y < this.size; y++) {
-            grid[y] = [];
-            for (let x = 0; x < this.size; x++) {
-                grid[y][x] = 0;
+        for (let y = 0; y < this.height; y++) {
+            this.grid[y] = [];
+            for (let x = 0; x < this.width; x++) {
+                this.grid[y][x] = 0;
             }
         }
     },
     next: function() {
-        this.ants.forEach((ant, index) => {
-            if (!this.isOutOfRange(ant)) {
-                let isBlack = !!this.board[ant.x][ant.y];
-                if (isBlack) {
-                    this.context.fillStyle = '#fff';
-                    this.board[ant.x][ant.y] = 0;
+        this.prevAnts = clone1DArray(this.ants);
+        this.prevAnts.forEach((ant, index) => {
+            if (this.isInRange(ant)) {
+                let isCellBlack = !!this.grid[ant.x][ant.y];
+                this.grid[ant.x][ant.y] = 1 ^ this.grid[ant.x][ant.y];//switch flag
+                this.context.fillStyle = isCellBlack ? '#fff' : '#000';//switch color
+                this.context.fillRect(ant.x * this.pixels, ant.y * this.pixels, this.pixels, this.pixels);
+                if (isCellBlack) {
                     ant.turnLeft().forward();
                 }
                 else {
-                    this.context.fillStyle = '#000';
-                    this.board[ant.x][ant.y] = 1;
                     ant.turnRight().forward();
                 }
             }
@@ -47,37 +47,16 @@ LangtonView.prototype = {
             }
         });
     },
-    play: function() {        
-        this.createGrid();
-
+    isInRange: function(ant) {
+        return (ant.x > 0 || ant.x < this.width || ant.y > 0 || ant.y < this.height);
+    },
+    play: function() {
+        let me = this;
+        this.next();
+        if (this.ants.length) {
+            setTimeout(() => { me.play(); }, me.speed);
+        }
     }
 };
-
-// let LangtonView = (size) => {
-//     let grid = [];
-//     let ants = [new Ant(size / 2, size / 2, direction.keys.north)];
-//     let timer;
-//     let createGrid = () => {
-//         for (let y = 0; y < size; y++) {
-//             grid[y] = [];
-//             for (let x = 0; x < size; x++) {
-//                 grid[y][x] = 0;
-//             }
-//         }
-//         return grid;
-//     };
-//     let game = new Langton(createGrid(), ants);
-//     let play = () => {
-//         game.next();
-//         console.log(game + '\n');
-//         if (game.ants.length) {
-//             setTimeout(play, 1000);
-//         }
-//     };
-
-//     return {
-//         play: play
-//     };
-// };
 
 module.exports = LangtonView;

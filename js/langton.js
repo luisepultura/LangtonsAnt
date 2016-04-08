@@ -19,14 +19,13 @@ Langton.prototype = {
     next: function() {
         this.prevAnts = clone1DArray(this.ants);
         this.prevAnts.forEach((ant, index) => {
-            if (!this.isOutOfRange(ant)) {
-                let isBlack = !!this.board[ant.x][ant.y];
+            if (this.isInRange(ant)) {
+                let isCellBlack = !!this.grid[ant.x][ant.y];
+                this.board[ant.x][ant.y] = 1 ^ this.board[ant.x][ant.y];//switch flag
                 if (isBlack) {
-                    this.board[ant.x][ant.y] = 0;
                     ant.turnLeft().forward();
                 }
                 else {
-                    this.board[ant.x][ant.y] = 1;
                     ant.turnRight().forward();
                 }
             }
@@ -35,8 +34,8 @@ Langton.prototype = {
             }
         });
     },
-    isOutOfRange: function(ant) {
-        return (ant.x < 0 || ant.x > this.width || ant.y < 0 || ant.y > this.height);
+    isInRange: function(ant) {
+        return (ant.x > 0 || ant.x < this.width || ant.y > 0 || ant.y < this.height);
     },
     toString: function() {
         return this.board.map(function(row) {

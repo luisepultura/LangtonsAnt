@@ -40,19 +40,29 @@ module.exports = Ant;
 },{"./direction":3}],2:[function(require,module,exports){
 'use strict';
 
-var view = require('./view');
-//let window = window || {};
-// let LangtonView = window.LangtonView || {};
-// LangtonView.view = view;
-// window.LangtonView = LangtonView;
-//view(4).play();
-
 if (typeof window !== 'undefined') {
-    var LangtonView = window.LangtonView || {};
-    LangtonView.view = view;
-    window.LangtonView = LangtonView;
+    (function () {
+        var Ant = require('./ant');
+        var direction = require('./direction');
+        var LangtonView = require('./langtonView');
+        var LangtonGame = window.LangtonGame || {};
+        LangtonGame.create = function (options) {
+            return new LangtonView(options);
+        };
+        window.LangtonGame = LangtonGame;
+
+        (function () {
+            var ants = [new Ant(25, 25, direction.keys.north), new Ant(75, 25, direction.keys.south), new Ant(25, 75, direction.keys.west), new Ant(75, 75, direction.keys.east)];
+            var options = { canvas: document.getElementById('grid'), width: 100, height: 100, pixels: 4, speed: 100, ants: ants };
+            var game = LangtonGame.create(options);
+            game.play();
+        })();
+    })();
+} else {
+    var view = require('./view');
+    view(4).play();
 }
-},{"./view":5}],3:[function(require,module,exports){
+},{"./ant":1,"./direction":3,"./langtonView":5,"./view":6}],3:[function(require,module,exports){
 'use strict';
 
 var direction = function direction() {
@@ -111,11 +121,10 @@ Langton.prototype = {
         this.prevAnts.forEach(function (ant, index) {
             if (!_this.isOutOfRange(ant)) {
                 var isBlack = !!_this.board[ant.x][ant.y];
+                _this.board[ant.x][ant.y] = 1 ^ _this.board[ant.x][ant.y]; //switch flag
                 if (isBlack) {
-                    _this.board[ant.x][ant.y] = 0;
                     ant.turnLeft().forward();
                 } else {
-                    _this.board[ant.x][ant.y] = 1;
                     ant.turnRight().forward();
                 }
             } else {
@@ -135,6 +144,72 @@ Langton.prototype = {
 
 module.exports = Langton;
 },{}],5:[function(require,module,exports){
+'use strict';
+
+var clone1DArray = function clone1DArray(array) {
+    return array.slice();
+};
+
+var LangtonView = function LangtonView(options) {
+    this.canvas = options.canvas;
+    this.width = options.width;
+    this.height = options.height;
+    this.pixels = options.pixels;
+    this.speed = options.speed;
+    this.ants = options.ants;
+    this.grid = [];
+    this.prevAnts = [];
+    this.context = this.canvas.getContext("2d");
+    this.canvas.width = this.width * this.pixels;
+    this.canvas.height = this.height * this.pixels;
+    this.createGrid();
+};
+
+LangtonView.prototype = {
+    createGrid: function createGrid() {
+        for (var y = 0; y < this.height; y++) {
+            this.grid[y] = [];
+            for (var x = 0; x < this.width; x++) {
+                this.grid[y][x] = 0;
+            }
+        }
+    },
+    next: function next() {
+        var _this = this;
+
+        this.prevAnts = clone1DArray(this.ants);
+        this.prevAnts.forEach(function (ant, index) {
+            if (_this.isInRange(ant)) {
+                var isCellBlack = !!_this.grid[ant.x][ant.y];
+                _this.grid[ant.x][ant.y] = 1 ^ _this.grid[ant.x][ant.y]; //switch flag
+                _this.context.fillStyle = isCellBlack ? '#fff' : '#000'; //switch color
+                _this.context.fillRect(ant.x * _this.pixels, ant.y * _this.pixels, _this.pixels, _this.pixels);
+                if (isCellBlack) {
+                    ant.turnLeft().forward();
+                } else {
+                    ant.turnRight().forward();
+                }
+            } else {
+                _this.ants.splice(index, 1);
+            }
+        });
+    },
+    isInRange: function isInRange(ant) {
+        return ant.x > 0 || ant.x < this.width || ant.y > 0 || ant.y < this.height;
+    },
+    play: function play() {
+        var me = this;
+        this.next();
+        if (this.ants.length) {
+            setTimeout(function () {
+                me.play();
+            }, me.speed);
+        }
+    }
+};
+
+module.exports = LangtonView;
+},{}],6:[function(require,module,exports){
 'use strict';
 
 var Langton = require('./langton');
