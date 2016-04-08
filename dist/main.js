@@ -44,6 +44,7 @@ if (typeof window !== 'undefined') {
     (function () {
         var Ant = require('./ant');
         var direction = require('./direction');
+        var Langton = require('./langton');
         var LangtonView = require('./langtonView');
         var LangtonGame = window.LangtonGame || {};
         LangtonGame.create = function (options) {
@@ -53,16 +54,36 @@ if (typeof window !== 'undefined') {
 
         (function () {
             var ants = [new Ant(25, 25, direction.keys.north), new Ant(75, 25, direction.keys.south), new Ant(25, 75, direction.keys.west), new Ant(75, 75, direction.keys.east)];
-            var options = { canvas: document.getElementById('grid'), width: 100, height: 100, pixels: 4, speed: 100, ants: ants };
-            var game = LangtonGame.create(options);
-            game.play();
+            var options = { width: 100, height: 100, pixels: 4, speed: 100, ants: ants };
+            var langton = new Langton(options);
+            var canvas = document.getElementById('grid');
+            var context = canvas.getContext("2d");
+            canvas.width = options.width * options.pixels;
+            canvas.height = options.height * options.pixels;
+            var next = langton.next;
+            var handler = {
+                apply: function apply(target, thisArg, argList) {
+                    console.log(thisArg);
+                    var isCellBlack = !!thisArg.grid[ant.x][ant.y];
+                    context.fillStyle = isCellBlack ? '#fff' : '#000'; //switch color
+                    context.fillRect(ant.x * thisArg.pixels, ant.y * thisArg.pixels, thisArg.pixels, thisArg.pixels);
+                    //target.apply(...args);
+                }
+            };
+            //let options = { canvas: document.getElementById('grid'), width: 100, height: 100, pixels: 4, speed: 100, ants: ants };
+            // let play = LangtonGame.create(options).play;
+            // let playProxy = new Proxy(play, handler);
+            // playProxy();
+            var nextProxy = new Proxy(next, handler);
+            nextProxy();
+            langton.play();
         })();
     })();
 } else {
     var view = require('./view');
     view(4).play();
 }
-},{"./ant":1,"./direction":3,"./langtonView":5,"./view":6}],3:[function(require,module,exports){
+},{"./ant":1,"./direction":3,"./langton":4,"./langtonView":5,"./view":6}],3:[function(require,module,exports){
 'use strict';
 
 var direction = function direction() {
@@ -105,24 +126,35 @@ var clone1DArray = function clone1DArray(array) {
     return array.slice();
 };
 
-var Langton = function Langton(board, ants) {
-    this.height = board.length;
-    this.width = board[0].length;
-    this.board = board;
-    this.ants = ants;
+var Langton = function Langton(options) {
+    this.width = options.width;
+    this.height = options.height;
+    this.pixels = options.pixels;
+    this.speed = options.speed;
+    this.ants = options.ants;
     this.prevAnts = [];
+    this.grid = [];
+    this.createGrid();
 };
 
 Langton.prototype = {
+    createGrid: function createGrid() {
+        for (var y = 0; y < this.height; y++) {
+            this.grid[y] = [];
+            for (var x = 0; x < this.width; x++) {
+                this.grid[y][x] = 0;
+            }
+        }
+    },
     next: function next() {
         var _this = this;
 
         this.prevAnts = clone1DArray(this.ants);
         this.prevAnts.forEach(function (ant, index) {
-            if (!_this.isOutOfRange(ant)) {
-                var isBlack = !!_this.board[ant.x][ant.y];
-                _this.board[ant.x][ant.y] = 1 ^ _this.board[ant.x][ant.y]; //switch flag
-                if (isBlack) {
+            if (_this.isInRange(ant)) {
+                var isCellBlack = !!_this.grid[ant.x][ant.y];
+                _this.grid[ant.x][ant.y] = 1 ^ _this.grid[ant.x][ant.y]; //switch flag
+                if (isCellBlack) {
                     ant.turnLeft().forward();
                 } else {
                     ant.turnRight().forward();
@@ -132,11 +164,21 @@ Langton.prototype = {
             }
         });
     },
-    isOutOfRange: function isOutOfRange(ant) {
-        return ant.x < 0 || ant.x > this.width || ant.y < 0 || ant.y > this.height;
+    isInRange: function isInRange(ant) {
+        return ant.x > 0 || ant.x < this.width || ant.y > 0 || ant.y < this.height;
+    },
+    play: function play() {
+        var me = this;
+        this.next();
+        //console.log(me + '\n');
+        if (this.ants.length) {
+            setTimeout(function () {
+                me.play();
+            }, me.speed);
+        }
     },
     toString: function toString() {
-        return this.board.map(function (row) {
+        return this.grid.map(function (row) {
             return row.join(' ');
         }).join('\n');
     }
